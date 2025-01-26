@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>HTTP Video Streaming – około 1400 słów</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 20px;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #2c3e50;
+    }
+    code {
+      background: #f4f4f4;
+      padding: 2px 4px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Przesyłanie strumieniowe wideo przez HTTP – wprowadzenie i metody</h1>
+
+<p>
+  Strumieniowanie wideo to proces, który umożliwia użytkownikom oglądanie treści audiowizualnych
+  na żądanie, bez konieczności pobierania całego pliku przed rozpoczęciem odtwarzania. Kiedyś,
+  w epoce wolniejszych łączy internetowych, oczekiwanie na pobranie pliku wideo (np. w formacie
+  AVI czy MPG) bywało niezwykle długie i frustrujące. Obecnie, dzięki rozwojowi technologii
+  oraz wzrostowi przepustowości sieci, większość serwisów streamingowych (YouTube, Netflix,
+  Twitch i wiele innych) korzysta z metod strumieniowych, które umożliwiają ładowanie i
+  oglądanie materiału wideo w locie.
+</p>
+
+<p>
+  HTTP, czyli <strong>Hypertext Transfer Protocol</strong>, to główny protokół komunikacji
+  w sieci WWW. Początkowo nie był projektowany z myślą o strumieniowaniu, a raczej o
+  przesyłaniu zasobów takich jak dokumenty HTML, obrazy i arkusze stylów. Jednak dzięki
+  ewolucji infrastruktury sieciowej i pojawieniu się koncepcji dzielenia materiału wideo
+  na mniejsze segmenty, HTTP stał się fundamentem przesyłania multimediów na masową skalę.
+</p>
+
+<p>
+  Metody takie jak <em>HTTP Live Streaming (HLS)</em> czy <em>MPEG-DASH</em> przyjęły
+  podejście polegające na dzieleniu treści na niewielkie fragmenty (tzw. <em>segmenty</em>).
+  Każdy z nich to kilka sekund materiału. Dzięki temu odtwarzacz może pobierać kolejne
+  segmenty sekwencyjnie, dopasowując w locie jakość do przepustowości łącza. Takie rozwiązanie
+  redukuje niepożądane przerwy, a użytkownicy mogą niemal natychmiast rozpocząć oglądanie
+  danego materiału.
+</p>
+
+<h2>1. Dlaczego stosuje się HTTP?</h2>
+
+<p>
+  Choć istnieją inne protokoły, takie jak RTMP, RTSP czy nawet transmisje UDP, to HTTP
+  od wielu lat dominuje w dostarczaniu wideo w internecie. Istnieje kilka przyczyn tej sytuacji:
+</p>
+
+<ol>
+  <li>
+    <strong>Uniwersalność i brak konfliktów z firewallami</strong> – HTTP używa portu 80
+    (lub 443 w przypadku HTTPS). Większość sieci i dostawców internetowych umożliwia ruch na
+    tych portach, co zmniejsza ryzyko zablokowania strumienia.
+  </li>
+  <li>
+    <strong>Skalowalność</strong> – Sieci CDN (Content Delivery Network) oraz rozwiązania
+    cache'ujące są zbudowane głównie z myślą o HTTP. Dzięki temu można replikować pliki
+    (segmenty) na wiele serwerów na całym świecie, skracając fizyczną odległość do użytkownika.
+  </li>
+  <li>
+    <strong>Elastyczność</strong> – HTTP bazuje na architekturze <em>request/response</em>.
+    Strumienie dzielone na małe fragmenty można więc pobierać zwykłymi żądaniami GET, co
+    upraszcza implementację i współpracę z urządzeniami mobilnymi czy przeglądarkami.
+  </li>
+  <li>
+    <strong>Zgodność z przeglądarkami i urządzeniami</strong> – Praktycznie każda przeglądarka
+    i większość sprzętów mobilnych natywnie obsługuje pobieranie danych przez HTTP.
+  </li>
+</ol>
+
+<p>
+  To wszystko powoduje, że nawet jeśli niektóre protokoły specjalistyczne w pewnych zastosowaniach
+  byłyby wydajniejsze, HTTP w połączeniu z segmentacją i adaptacyjnym podejściem okazał się
+  najlepszym kompromisem pomiędzy prostotą a skutecznością.
+</p>
+
+<h2>2. Podstawowe koncepcje w HTTP Video Streaming</h2>
+
+<h3>2.1. Segmentacja materiału (chunking)</h3>
+<p>
+  Sednem strumieniowania przez HTTP jest dzielenie całego materiału wideo na krótkie fragmenty.
+  Zwykle każdy segment trwa od 2 do 10 sekund. Gdy widz rozpoczyna oglądanie, jego odtwarzacz
+  pobiera pierwsze segmenty i odtwarza je natychmiast, a w tle ściąga kolejne. Nie ma więc
+  potrzeby pobierania całego pliku, który może zajmować setki megabajtów lub nawet kilka
+  gigabajtów.
+</p>
+
+<h3>2.2. Adaptacja (adaptive streaming)</h3>
+<p>
+  Dzięki adaptacyjnemu strumieniowaniu, odtwarzacz może automatycznie przełączać się między
+  różnymi poziomami jakości (przepływności bitowej, rozdzielczości) na podstawie warunków sieci.
+  Jeśli łącze jest dobre, odtwarzacz wybiera wyższą jakość (np. 1080p). Jeśli przepustowość
+  drastycznie spadnie, przełącza się na niższą (np. 480p), aby uniknąć długich pauz i
+  buforowania. Serwis streamingowy musi więc przygotować kilka wersji jakościowych materiału
+  już na etapie transkodowania.
+</p>
+
+<h3>2.3. Playlisty i manifesty</h3>
+<p>
+  Każdy z popularnych protokołów HTTP streaming (HLS, MPEG-DASH) wymaga specjalnych plików,
+  które opisują strukturę segmentów i dostępne warianty jakościowe. W <strong>HLS</strong>
+  jest to tzw. playlista, zazwyczaj z rozszerzeniem <code>.m3u8</code>, a w <strong>MPEG-DASH</strong>
+  mowa o pliku manifestu, <code>.mpd</code>. To w nich znajdują się ścieżki do segmentów oraz
+  metadane, takie jak rozmiar czy bitrate.
+</p>
+
+<h2>3. Przykładowe metody i formaty</h2>
+
+<h3>3.1. HLS (HTTP Live Streaming)</h3>
+<p>
+  HLS stworzono pierwotnie w firmie Apple, początkowo by obsłużyć iPhone’y i iPady. Dziś
+  wykorzystuje się go w wielu innych środowiskach. Podstawą są niewielkie fragmenty (segmenty)
+  zapisywane w plikach MPEG-TS (albo – w nowszych wersjach – w formacie fMP4). Odtwarzacz
+  pobiera plik <code>.m3u8</code>, w którym widnieje lista segmentów (np. <code>segment0.ts</code>,
+  <code>segment1.ts</code> itd.). Jeśli mamy do czynienia z tzw. <em>master playlist</em>,
+  to oprócz listy segmentów zawiera ona także różne warianty (np. 240p, 480p, 720p) – odtwarzacz
+  sam wybiera najlepszy.
+</p>
+
+<h3>3.2. MPEG-DASH</h3>
+<p>
+  MPEG-DASH (Dynamic Adaptive Streaming over HTTP) to otwarty standard, często uznawany za
+  bardziej elastyczną alternatywę dla HLS. Zamiast pliku <code>.m3u8</code> mamy tutaj
+  manifest <code>.mpd</code>. Idea pozostaje podobna: materiał jest podzielony na krótkie
+  segmenty, odtwarzacz pobiera je przez żądania HTTP, a w miarę zmian warunków sieci może
+  przełączać się między różnymi wariantami jakościowymi.
+</p>
+
+<h3>3.3. CMAF (Common Media Application Format)</h3>
+<p>
+  CMAF pojawił się jako sposób na ujednolicenie formatu segmentów. Zamiast mieć osobne pliki
+  MPEG-TS dla HLS i MP4 dla DASH, można używać jednego formatu <em>fMP4</em> zgodnego z obiema
+  technologiami. Pozwala to dostawcom treści ograniczyć liczbę kopiowanych i przechowywanych
+  wersji tych samych materiałów wideo, co z kolei wpływa na mniejsze koszty magazynowania
+  danych.
+</p>
+
+<h2>4. Strumieniowanie w chmurze – przykład AWS</h2>
+
+<p>
+  W artykule „Back to Basics: HTTP Video Streaming” na blogu AWS opisano, jak wiele firm
+  decyduje się na użycie usług chmurowych do skalowania i obsługi infrastruktury streamingowej.
+  Kluczowe komponenty to:
+</p>
+
+<ol>
+  <li>
+    <strong>Amazon S3 (Simple Storage Service)</strong> – Służy do przechowywania plików wideo
+    lub gotowych segmentów HLS/DASH. Dzięki powiązaniu z Amazon CloudFront (CDN), możliwe jest
+    szybkie dostarczanie treści odbiorcom na całym świecie.
+  </li>
+  <li>
+    <strong>AWS Elemental MediaConvert</strong> – Narzędzie pozwalające transkodować wideo
+    w różne formaty i rozdzielczości, generować segmenty oraz tworzyć listy <code>.m3u8</code>
+    czy manifesty <code>.mpd</code>.
+  </li>
+  <li>
+    <strong>AWS Elemental MediaPackage</strong> – Umożliwia tworzenie dostosowanych strumieni
+    HLS, DASH czy CMAF z jednego źródła, zapewniając adaptacyjne i bezpieczne dostarczanie
+    treści.
+  </li>
+  <li>
+    <strong>Amazon CloudFront</strong> – Globalna sieć CDN, która przechowuje kopie
+    segmentów w różnych miejscach (edge locations), redukując opóźnienia i przyspieszając
+    dostarczanie do widza.
+  </li>
+</ol>
+
+<p>
+  Takie rozwiązanie daje ogromną skalowalność. Nawet jeśli strumień ma oglądać równocześnie
+  kilkaset tysięcy osób, CDN radzi sobie z rozłożeniem obciążenia. Jednocześnie adaptacyjne
+  strumieniowanie gwarantuje płynne przełączanie jakości bez względu na to, czy odbiorca ma
+  superszybki światłowód, czy jedynie połączenie mobilne w zatłoczonym miejscu.
+</p>
+
+<h2>5. Wyzwania w przesyłaniu strumieniowym przez HTTP</h2>
+
+<h3>5.1. Zmienna jakość łącza</h3>
+<p>
+  Najbardziej oczywisty problem – nie wszyscy dysponują szybkim i stabilnym internetem. Choć
+  adaptacja jakości rozwiązuje część trudności, gwałtowny spadek przepustowości może wciąż
+  spowodować buforowanie. Algorytmy adaptacyjne starają się temu zapobiegać, starannie dobierając
+  odpowiedni wariant jakościowy.
+</p>
+
+<h3>5.2. Opóźnienie (latency)</h3>
+<p>
+  Standardowe HLS segmentowane w 6-sekundowe fragmenty generuje opóźnienie rzędu kilkunastu
+  sekund przy transmisjach na żywo. W wielu zastosowaniach (np. wydarzenia sportowe) to
+  wciąż akceptowalne, ale są sytuacje, w których trzeba zejść do minimalnych opóźnień (np.
+  interaktywne eventy online). Wtedy rozwiązania typu <em>Low-Latency HLS</em> lub CMAF
+  Low Latency pozwalają ograniczyć opóźnienie do 2–3 sekund.
+</p>
+
+<h3>5.3. Zabezpieczenia i DRM</h3>
+<p>
+  Wielu dostawców treści (np. platformy VOD) potrzebuje chronić materiały przed piractwem.
+  Stąd powszechne mechanizmy DRM (Widevine, FairPlay, PlayReady), które szyfrują segmenty.
+  Jedynie legalny odtwarzacz z ważnymi licencjami jest w stanie je odszyfrować. Wiąże się to
+  jednak z dodatkowymi kosztami wdrożenia i opłatami licencyjnymi.
+</p>
+
+<h3>5.4. Kompatybilność</h3>
+<p>
+  Urządzenia mobilne, przeglądarki i telewizory smart mogą mieć różne wersje systemów i wsparcie
+  dla protokołów. Dostawcy streamingu zazwyczaj starają się używać formatów i technologii,
+  które pokrywają jak najszersze grono odbiorców. Wciąż jednak zdarzają się starsze urządzenia
+  bez obsługi HLS czy MPEG-DASH, co wymusza pewne obejścia.
+</p>
+
+<h2>6. Adaptacyjne strumieniowanie – korzyści</h2>
+
+<ul>
+  <li>
+    <strong>Ulepszone wrażenia użytkownika</strong>: dynamiczne dopasowanie jakości obrazu
+    i dźwięku pozwala zachować ciągłość odtwarzania przy gorszych warunkach sieciowych.
+  </li>
+  <li>
+    <strong>Skalowalność</strong>: HTTP wraz z CDN umożliwia obsługę milionów użytkowników
+    bez poważnego ryzyka przeciążenia jednego serwera.
+  </li>
+  <li>
+    <strong>Elastyczność</strong>: liczne biblioteki (np. <code>hls.js</code>, <code>shaka-player</code>)
+    pozwalają wdrożyć odtwarzanie w dowolnej aplikacji webowej czy mobilnej.
+  </li>
+  <li>
+    <strong>Szeroka zgodność</strong>: większość urządzeń i przeglądarek wspiera HLS lub
+    MPEG-DASH, co gwarantuje powszechną dostępność treści.
+  </li>
+</ul>
+
+<h2>7. Cały łańcuch przesyłania: od pliku źródłowego do przeglądarki</h2>
+
+<p>
+  Przebieg przygotowywania i dostarczania strumienia można w uproszczeniu podzielić na kilka etapów:
+</p>
+
+<ol>
+  <li>
+    <em>Materiał źródłowy</em> – Dostawca treści dysponuje nagraniem (np. w formacie MP4).
+  </li>
+  <li>
+    <em>Transkodowanie</em> – Korzystając z narzędzi takich jak FFmpeg czy AWS Elemental
+    MediaConvert, konwertuje się materiał do różnych rozdzielczości i bitrate’ów (np. 480p,
+    720p, 1080p).
+  </li>
+  <li>
+    <em>Segmentacja</em> – Podział na krótkie fragmenty, np. 6-sekundowe. Powstaje wiele
+    plików segmentów, zależnie od długości filmu.
+  </li>
+  <li>
+    <em>Tworzenie playlist / manifestów</em> – Generowane są pliki typu <code>.m3u8</code>
+    (dla HLS) lub <code>.mpd</code> (dla DASH), które opisują warianty jakościowe i ścieżki
+    do konkretnych fragmentów.
+  </li>
+  <li>
+    <em>Dystrybucja</em> – Segmenty i playlisty umieszcza się na serwerach HTTP czy w CDN.
+  </li>
+  <li>
+    <em>Odtwarzanie</em> – Użytkownik wchodzi na stronę i klika „play”. Odtwarzacz pobiera
+    manifest / playlistę, wybiera wariant jakościowy i zaczyna pobierać segmenty po kolei.
+    Jeśli przepustowość rośnie lub maleje, automatycznie przełącza się na inny profil jakości.
+  </li>
+</ol>
+
+<p>
+  Dzięki temu odtwarzanie staje się ciągłe, a użytkownik zwykle nie zauważa momentu zmiany
+  jakości. Ważne jest natomiast, by rozmiary segmentów i parametry transkodowania zostały
+  dobrze dobrane do odbiorców. Zbyt duże segmenty wydłużą czas buforowania, a zbyt małe –
+  mogą przeciążyć serwer lawiną żądań.
+</p>
+
+<h2>8. Przykład praktyczny – mała platforma e-learningowa</h2>
+
+<p>
+  Wyobraźmy sobie, że tworzymy własną stronę z kursami wideo. Mamy serię nagrań w jakości
+  Full HD. Dzięki narzędziom takim jak FFmpeg dzielimy każde nagranie na kilka wersji (np.
+  480p, 720p, 1080p) i segmentujemy po 6 sekund. Następnie generujemy playlisty <code>.m3u8</code>
+  (dla HLS) lub manifest <code>.mpd</code> (dla MPEG-DASH). Wszystkie pliki wrzucamy do usług
+  chmurowych (AWS S3 + CloudFront). Na stronie HTML umieszczamy zaś <code>&lt;video&gt;</code>
+  z dołączonym skryptem <code>hls.js</code> czy innym playerem. Gdy użytkownik wybiera lekcję,
+  odtwarzacz pobiera manifest i automatycznie wybiera najlepszy wariant jakościowy zgodnie
+  z warunkami sieci.
+</p>
+
+<h2>9. Podsumowanie</h2>
+
+<p>
+  Strumieniowanie przez HTTP jest dziś fundamentem praktycznie każdej usługi wideo na żądanie
+  (VOD) oraz wielu transmisji na żywo w internecie. Protokół HTTP, w połączeniu z segmentacją
+  materiałów i mechanizmami adaptacyjnymi (jak w HLS czy MPEG-DASH), gwarantuje płynną
+  konsumpcję treści nawet w obliczu zmiennych warunków sieciowych. Zarówno artykuł
+  <a href="https://web.dev/articles/media-streaming-basics">Media streaming basics</a> z web.dev,
+  jak i
+  <a href="https://aws.amazon.com/blogs/media/back-to-basics-http-video-streaming/">Back to Basics: HTTP Video Streaming</a>
+  od AWS podkreślają, że skalowalność i elastyczność tego rozwiązania pozwala na udostępnianie
+  wideo milionom użytkowników równocześnie, bez konieczności pisania specjalistycznych aplikacji
+  działających poza ekosystemem przeglądarkowym.
+</p>
+
+<p>
+  Mechanizmy adaptacyjne sprawiają, że zmiana jakości odbywa się niemal niezauważalnie, a
+  dostępne są też technologie (Low-Latency HLS, CMAF Low Latency) zmniejszające opóźnienia
+  do poziomu akceptowalnego w transmisjach sportowych czy wydarzeniach na żywo. Warto pamiętać,
+  że całość procesu obejmuje nie tylko samą dystrybucję segmentów, ale i transkodowanie, tworzenie
+  odpowiednich metadanych i (często) zabezpieczeń DRM. Mimo to, w porównaniu z dawnymi czasami,
+  obecne rozwiązania są dość proste we wdrożeniu, ponieważ wiele bibliotek i usług chmurowych
+  oferuje gotowe narzędzia.
+</p>
+
+<p>
+  Podsumowując, HTTP streaming to efektywne, skalowalne i elastyczne podejście do przesyłania
+  wideo. Przy jego pomocy można dotrzeć do szerokiego grona odbiorców i zapewnić im możliwie
+  najlepszą jakość odbioru w zależności od posiadanej przepustowości. Dla twórców czy firm
+  planujących własne platformy VOD oznacza to szansę na szybkie wdrożenie z wykorzystaniem
+  dostępnych standardów i narzędzi. Wydaje się też, że przyszłość strumieniowania będzie
+  wiązać się z dalszym ograniczaniem opóźnień, standaryzacją formatów (CMAF) oraz rozwijaniem
+  integracji z różnymi urządzeniami. Jednak już dziś adaptacyjne strumieniowanie przez HTTP
+  uchodzi za złoty standard w branży wideo.
+</p>
+
+</body>
+</html>
